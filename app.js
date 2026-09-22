@@ -5,6 +5,22 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG
 const columns = document.querySelectorAll('.kanban-column');
 const form = document.getElementById('taskForm');
 
+// Función para recontar y actualizar los contadores superiores de cada columna
+function actualizarContadores() {
+    columns.forEach(col => {
+        // Cuenta solo las tarjetas dentro de la columna
+        const total = col.querySelectorAll('.card').length;
+        
+        // Busca el elemento del contador dentro del contenedor padre de la columna
+        const parent = col.parentElement;
+        const badge = parent.querySelector('.task-count, span.bg-gray-200, span.rounded-full');
+        
+        if (badge) {
+            badge.innerText = total;
+        }
+    });
+}
+
 // Event Listeners para Drag and Drop en Columnas
 columns.forEach(col => {
     col.addEventListener('dragover', e => {
@@ -27,6 +43,7 @@ columns.forEach(col => {
         if (card && newStatus) {
             col.appendChild(card);
             actualizarEstadoAPI(taskId, newStatus);
+            actualizarContadores(); // Actualiza los contadores al mover una tarjeta
         }
     });
 });
@@ -40,6 +57,8 @@ async function cargarTareas() {
         tareas.forEach(tarea => {
             crearTarjetaUI(tarea);
         });
+
+        actualizarContadores(); // Actualiza contadores tras cargar la lista inicial
     } catch (error) {
         console.error("Error al cargar tareas:", error);
     }
@@ -80,7 +99,9 @@ function crearTarjetaUI(tarea) {
     });
 
     const columna = document.getElementById(`col-${tarea.Estado}`);
-    if (columna) columna.appendChild(card);
+    if (columna) {
+        columna.appendChild(card);
+    }
 }
 
 // Función para eliminar tarjeta
@@ -92,6 +113,7 @@ async function eliminarTarjeta(id) {
     if (card) {
         // Remover de la interfaz inmediatamente
         card.remove();
+        actualizarContadores(); // Actualiza contadores al borrar
     }
 
     // Petición al backend para borrar la fila en Google Sheets
@@ -133,7 +155,6 @@ form.addEventListener('submit', async (e) => {
         
         const res = await response.json();
         if (res.success) {
-            // Mapeo explicito de llaves para evitar discrepancias al crear la tarjeta localmente
             const nuevaTareaUI = {
                 ID: res.id,
                 Titulo: data.titulo,
@@ -146,6 +167,7 @@ form.addEventListener('submit', async (e) => {
             };
 
             crearTarjetaUI(nuevaTareaUI);
+            actualizarContadores(); // Actualiza contadores al agregar una tarjeta nueva
             document.getElementById('taskModal').classList.add('hidden');
             form.reset();
         }
