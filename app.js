@@ -46,29 +46,48 @@ async function cargarTareas() {
 }
 
 // Crear Tarjeta en el DOM (con botón de eliminar)
+
+// Crear Tarjeta en el DOM con diseño mejorado
 function crearTarjetaUI(tarea) {
     const card = document.createElement('div');
-    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition relative group";
+    card.className = "card bg-white p-4 rounded-xl shadow-sm hover:shadow-md border border-slate-200/80 cursor-grab border-l-4 border-l-indigo-500 transition-all duration-200 relative group";
     card.draggable = true;
     card.id = tarea.ID;
 
     card.innerHTML = `
-        <div class="flex justify-between items-start mb-1">
-            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo}</h3>
-            <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
+        <div class="flex justify-between items-start mb-1.5">
+            <h3 class="font-semibold text-slate-800 text-sm flex-1 pr-2 leading-snug">${tarea.Titulo}</h3>
+            <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-slate-100">
                 🗑️
             </button>
         </div>
-        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion}</p>
-        <div class="flex justify-between items-center mb-2">
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable}</span>
+        <p class="text-xs text-slate-500 mb-3 line-clamp-2 leading-relaxed">${tarea.Descripcion}</p>
+        <div class="flex justify-between items-center mb-2.5">
+            <span class="bg-indigo-50 text-indigo-700 text-[11px] font-medium px-2.5 py-1 rounded-lg border border-indigo-100">👤 ${tarea.Responsable}</span>
         </div>
-        <div class="text-[10px] text-gray-400 flex justify-between">
-            <span>📅 ${tarea.FechaInicio} - ${tarea.FechaFin}</span>
+        <div class="text-[10px] text-slate-400 font-medium flex justify-between items-center pt-2 border-t border-slate-100">
+            <span>📅 ${tarea.FechaInicio} — ${tarea.FechaFin}</span>
         </div>
-        ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
+        ${tarea.URL ? `
+            <a href="${tarea.URL}" target="_blank" class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 hover:underline">
+                🔗 <span>Ver Entregable</span>
+            </a>
+        ` : ''}
     `;
 
+    // Eventos Drag Card
+    card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', card.id);
+        setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+    });
+
+    const columna = document.getElementById(`col-${tarea.Estado}`);
+    if (columna) columna.appendChild(card);
+}
     // Eventos Drag Card
     card.addEventListener('dragstart', e => {
         e.dataTransfer.setData('text/plain', card.id);
