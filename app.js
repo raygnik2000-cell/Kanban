@@ -8,7 +8,7 @@ const form = document.getElementById('taskForm');
 // Event Listeners para Drag and Drop en Columnas
 columns.forEach(col => {
     col.addEventListener('dragover', e => {
-        e.preventDefault(); // Necesario para permitir el drop
+        e.preventDefault();
         col.parentElement.classList.add('ring-2', 'ring-indigo-400');
     });
     
@@ -25,8 +25,8 @@ columns.forEach(col => {
         const newStatus = col.parentElement.getAttribute('data-status');
         
         if (card && newStatus) {
-            col.appendChild(card); // Mover UI inmediatamente para buena experiencia
-            actualizarEstadoAPI(taskId, newStatus); // Llamada asíncrona al backend
+            col.appendChild(card);
+            actualizarEstadoAPI(taskId, newStatus);
         }
     });
 });
@@ -45,15 +45,20 @@ async function cargarTareas() {
     }
 }
 
-// Crear Tarjeta en el DOM
+// Crear Tarjeta en el DOM (con botón de eliminar)
 function crearTarjetaUI(tarea) {
     const card = document.createElement('div');
-    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition";
+    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition relative group";
     card.draggable = true;
     card.id = tarea.ID;
 
     card.innerHTML = `
-        <h3 class="font-bold text-gray-800 text-sm mb-1">${tarea.Titulo}</h3>
+        <div class="flex justify-between items-start mb-1">
+            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo}</h3>
+            <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
+                🗑️
+            </button>
+        </div>
         <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion}</p>
         <div class="flex justify-between items-center mb-2">
             <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable}</span>
@@ -78,6 +83,30 @@ function crearTarjetaUI(tarea) {
     if (columna) columna.appendChild(card);
 }
 
+// Función para eliminar tarjeta
+async function eliminarTarjeta(id) {
+    const confirmacion = confirm("¿Estás seguro de que deseas eliminar esta tarjeta?");
+    if (!confirmacion) return;
+
+    const card = document.getElementById(id);
+    if (card) {
+        // Remover de la interfaz inmediatamente
+        card.remove();
+    }
+
+    // Petición al backend para borrar la fila en Google Sheets
+    try {
+        await fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'eliminar', id: id })
+        });
+    } catch (error) {
+        console.error("Error al eliminar la tarjeta:", error);
+        alert("Hubo un problema al eliminar la tarjeta de la base de datos.");
+    }
+}
+
 // Enviar Nueva Tarea al Backend
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -96,7 +125,6 @@ form.addEventListener('submit', async (e) => {
     };
 
     try {
-        // NOTA TÉCNICA: Usamos 'text/plain' para evitar el error de preflight CORS en Google Apps Script
         const response = await fetch(GAS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -107,7 +135,7 @@ form.addEventListener('submit', async (e) => {
         if (res.success) {
             data.ID = res.id;
             data.Estado = 'Backlog';
-            crearTarjetaUI(data); // Renderizar nueva tarea
+            crearTarjetaUI(data);
             document.getElementById('taskModal').classList.add('hidden');
             form.reset();
         }
@@ -129,7 +157,6 @@ async function actualizarEstadoAPI(id, nuevoEstado) {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(data)
         });
-        // Si el estado es "En revisión", GAS se encarga de enviar el correo silenciosamente.
     } catch (error) {
         console.error("Error al actualizar estado:", error);
     }
