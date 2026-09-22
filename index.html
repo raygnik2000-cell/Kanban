@@ -1,139 +1,99 @@
-// REEMPLAZA ESTO CON LA URL QUE TE DÉ GOOGLE APPS SCRIPT AL DESPLEGAR
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .kanban-column { min-height: 60vh; }
+        .card.dragging { opacity: 0.5; transform: scale(0.95); }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen flex flex-col overflow-x-hidden">
 
-// DOM Elements
-const columns = document.querySelectorAll('.kanban-column');
-const form = document.getElementById('taskForm');
-
-// Event Listeners para Drag and Drop en Columnas
-columns.forEach(col => {
-    col.addEventListener('dragover', e => {
-        e.preventDefault(); // Necesario para permitir el drop
-        col.parentElement.classList.add('ring-2', 'ring-indigo-400');
-    });
-    
-    col.addEventListener('dragleave', e => {
-        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
-    });
-    
-    col.addEventListener('drop', e => {
-        e.preventDefault();
-        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
-        
-        const taskId = e.dataTransfer.getData('text/plain');
-        const card = document.getElementById(taskId);
-        const newStatus = col.parentElement.getAttribute('data-status');
-        
-        if (card && newStatus) {
-            col.appendChild(card); // Mover UI inmediatamente para buena experiencia
-            actualizarEstadoAPI(taskId, newStatus); // Llamada asíncrona al backend
-        }
-    });
-});
-
-// Cargar tareas iniciales
-async function cargarTareas() {
-    try {
-        const response = await fetch(GAS_API_URL);
-        const tareas = await response.json();
-        
-        tareas.forEach(tarea => {
-            crearTarjetaUI(tarea);
-        });
-    } catch (error) {
-        console.error("Error al cargar tareas:", error);
-    }
-}
-
-// Crear Tarjeta en el DOM
-function crearTarjetaUI(tarea) {
-    const card = document.createElement('div');
-    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition";
-    card.draggable = true;
-    card.id = tarea.ID;
-
-    card.innerHTML = `
-        <h3 class="font-bold text-gray-800 text-sm mb-1">${tarea.Titulo}</h3>
-        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion}</p>
-        <div class="flex justify-between items-center mb-2">
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable}</span>
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold">LMS AI Web Dev Kanban</h1>
+            <p class="text-sm text-indigo-200">Gestión de Tareas y Entregables</p>
         </div>
-        <div class="text-[10px] text-gray-400 flex justify-between">
-            <span>📅 ${tarea.FechaInicio} - ${tarea.FechaFin}</span>
+        <button onclick="document.getElementById('taskModal').classList.remove('hidden')" class="bg-white text-indigo-600 px-4 py-2 rounded-md font-semibold hover:bg-indigo-50 transition">
+            + Nueva Tarjeta
+        </button>
+    </header>
+
+    <!-- Tablero Kanban -->
+    <main class="flex-1 overflow-x-auto p-6">
+        <div class="flex gap-6 items-start h-full" id="board">
+            
+            <!-- Columnas -->
+            <div class="bg-gray-200 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Backlog">
+                <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">📌 Backlog</h2>
+                <div class="kanban-column space-y-3" id="col-Backlog"></div>
+            </div>
+
+            <div class="bg-gray-200 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Asignado a">
+                <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">👤 Asignado a</h2>
+                <div class="kanban-column space-y-3" id="col-Asignado a"></div>
+            </div>
+
+            <div class="bg-blue-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="En progreso">
+                <h2 class="font-semibold text-blue-700 mb-4 flex items-center gap-2">⚙️ En progreso</h2>
+                <div class="kanban-column space-y-3" id="col-En progreso"></div>
+            </div>
+
+            <div class="bg-yellow-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="En revisión">
+                <h2 class="font-semibold text-yellow-700 mb-4 flex items-center gap-2">👀 En revisión</h2>
+                <div class="kanban-column space-y-3" id="col-En revisión"></div>
+            </div>
+
+            <div class="bg-green-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Finalizado">
+                <h2 class="font-semibold text-green-700 mb-4 flex items-center gap-2">✅ Finalizado</h2>
+                <div class="kanban-column space-y-3" id="col-Finalizado"></div>
+            </div>
+
         </div>
-        ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
-    `;
+    </main>
 
-    // Eventos Drag Card
-    card.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', card.id);
-        setTimeout(() => card.classList.add('dragging'), 0);
-    });
-    
-    card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-    });
+    <!-- Modal para Nueva Tarjeta -->
+    <div id="taskModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">Crear Nueva Tarjeta</h2>
+            <form id="taskForm" class="space-y-3">
+                <input type="text" id="titulo" placeholder="Título de la tarea" class="w-full border rounded p-2" required>
+                <textarea id="descripcion" placeholder="Descripción detallada..." class="w-full border rounded p-2 h-24" required></textarea>
+                
+                <select id="responsable" class="w-full border rounded p-2" required>
+                    <option value="" disabled selected>Asignar a...</option>
+                    <option value="Carlos">Carlos (Dev)</option>
+                    <option value="Maria">Maria (Design)</option>
+                    <option value="Miguel">Miguel (AI Prompter)</option>
+                </select>
 
-    const columna = document.getElementById(`col-${tarea.Estado}`);
-    if (columna) columna.appendChild(card);
-}
+                <div class="flex gap-2">
+                    <div class="w-1/2">
+                        <label class="text-xs text-gray-500">Fecha Inicio</label>
+                        <input type="date" id="fechaInicio" class="w-full border rounded p-2" required>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="text-xs text-gray-500">Fecha Fin</label>
+                        <input type="date" id="fechaFin" class="w-full border rounded p-2" required>
+                    </div>
+                </div>
+                
+                <input type="url" id="url" placeholder="URL de referencia (Opcional)" class="w-full border rounded p-2">
+                
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="document.getElementById('taskModal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Crear Tarjeta</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-// Enviar Nueva Tarea al Backend
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btnSubmit = form.querySelector('button[type="submit"]');
-    btnSubmit.innerText = "Guardando...";
-    btnSubmit.disabled = true;
-
-    const data = {
-        action: 'crear',
-        titulo: document.getElementById('titulo').value,
-        descripcion: document.getElementById('descripcion').value,
-        responsable: document.getElementById('responsable').value,
-        fechaInicio: document.getElementById('fechaInicio').value,
-        fechaFin: document.getElementById('fechaFin').value,
-        url: document.getElementById('url').value
-    };
-
-    try {
-        // NOTA TÉCNICA: Usamos 'text/plain' para evitar el error de preflight CORS en Google Apps Script
-        const response = await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(data)
-        });
-        
-        const res = await response.json();
-        if (res.success) {
-            data.ID = res.id;
-            data.Estado = 'Backlog';
-            crearTarjetaUI(data); // Renderizar nueva tarea
-            document.getElementById('taskModal').classList.add('hidden');
-            form.reset();
-        }
-    } catch (error) {
-        alert("Error al guardar la tarea");
-    } finally {
-        btnSubmit.innerText = "Crear Tarjeta";
-        btnSubmit.disabled = false;
-    }
-});
-
-// Actualizar estado (Al hacer Drag & Drop)
-async function actualizarEstadoAPI(id, nuevoEstado) {
-    const data = { action: 'actualizarEstado', id: id, estado: nuevoEstado };
-    
-    try {
-        await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(data)
-        });
-        // Si el estado es "En revisión", GAS se encarga de enviar el correo silenciosamente.
-    } catch (error) {
-        console.error("Error al actualizar estado:", error);
-    }
-}
-
-// Iniciar aplicación
-cargarTareas();
+    <script src="app.js"></script>
+</body>
+</html>
