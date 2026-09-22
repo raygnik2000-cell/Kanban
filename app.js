@@ -1,4 +1,4 @@
-// REEMPLAZA ESTO CON LA URL QUE TE DÉ GOOGLE APPS SCRIPT AL DESPLEGAR
+// URL de la API desplegada en Google Apps Script
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
 
 // DOM Elements
@@ -54,17 +54,17 @@ function crearTarjetaUI(tarea) {
 
     card.innerHTML = `
         <div class="flex justify-between items-start mb-1">
-            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo}</h3>
+            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo || ''}</h3>
             <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
                 🗑️
             </button>
         </div>
-        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion}</p>
+        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion || ''}</p>
         <div class="flex justify-between items-center mb-2">
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable}</span>
+            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable || ''}</span>
         </div>
         <div class="text-[10px] text-gray-400 flex justify-between">
-            <span>📅 ${tarea.FechaInicio} - ${tarea.FechaFin}</span>
+            <span>📅 ${tarea.FechaInicio || ''} - ${tarea.FechaFin || ''}</span>
         </div>
         ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
     `;
@@ -133,9 +133,19 @@ form.addEventListener('submit', async (e) => {
         
         const res = await response.json();
         if (res.success) {
-            data.ID = res.id;
-            data.Estado = 'Backlog';
-            crearTarjetaUI(data);
+            // Mapeo explicito de llaves para evitar discrepancias al crear la tarjeta localmente
+            const nuevaTareaUI = {
+                ID: res.id,
+                Titulo: data.titulo,
+                Descripcion: data.descripcion,
+                Responsable: data.responsable,
+                FechaInicio: data.fechaInicio,
+                FechaFin: data.fechaFin,
+                URL: data.url,
+                Estado: 'Backlog'
+            };
+
+            crearTarjetaUI(nuevaTareaUI);
             document.getElementById('taskModal').classList.add('hidden');
             form.reset();
         }
@@ -164,4 +174,3 @@ async function actualizarEstadoAPI(id, nuevoEstado) {
 
 // Iniciar aplicación
 cargarTareas();
-
