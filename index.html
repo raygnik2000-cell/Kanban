@@ -3,272 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S.A.S. - Kanban de Calidad & Pruebas</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Tablero Kanban - LCM visuals</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Inter & JetBrains Mono Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        dark: {
-                            900: '#090d16',
-                            800: '#0f172a',
-                            700: '#1e293b',
-                            600: '#334155'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Personalización de Scrollbar para aspecto futurista/cyber */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #090d16;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
-        }
-        
-        /* Drag & Drop Visual Hints */
-        .kanban-column.drag-over {
-            background-color: rgba(30, 41, 59, 0.5);
-            border-style: dashed;
-        }
-        .task-card.dragging {
-            opacity: 0.4;
-            transform: scale(0.98);
-        }
+        body { font-family: 'Poppins', sans-serif; }
+        .kanban-column { min-height: 60vh; }
+        .card.dragging { opacity: 0.5; transform: scale(0.95); }
     </style>
 </head>
-<body class="bg-dark-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-gray-100 text-gray-800 h-screen flex flex-col overflow-x-hidden">
 
-    <!-- TOP HEADER -->
-    <header class="border-b border-slate-800 bg-dark-800/60 backdrop-blur-md sticky top-0 z-40">
-        <div class="max-w-[1800px] mx-auto px-4 h-16 flex items-center justify-between">
-            
-            <!-- Logo & Title -->
-            <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
-                    <i class="ph-bold ph-kanban text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-sm sm:text-base tracking-wide text-white flex items-center gap-2">
-                        S.A.S. <span class="text-xs font-normal text-slate-400 border-l border-slate-700 pl-2">Gestión de Calidad & Pruebas</span>
-                    </h1>
-                </div>
-            </div>
-
-            <!-- Global Stats / Quick Metrics -->
-            <div class="hidden md:flex items-center gap-6 text-xs font-mono border-x border-slate-800 px-6 py-1.5">
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-500">TOTAL:</span>
-                    <span id="task-count" class="font-bold text-indigo-400">0</span>
-                    <span id="stat-total" class="font-bold text-indigo-400 hidden">0</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-500">EN REVISIÓN:</span>
-                    <span id="stat-revision" class="font-bold text-amber-400">0</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-slate-500">FINALIZADAS:</span>
-                    <span id="stat-done" class="font-bold text-emerald-400">0</span>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex items-center gap-3">
-                <button id="btn-open-modal" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
-                    <i class="ph-bold ph-plus"></i>
-                    <span>Nueva Tarjeta</span>
-                </button>
-            </div>
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold">Tablero Kanban - LCM visuals</h1>
+            <p class="text-sm text-indigo-200">Gestión de Tareas y Entregables</p>
         </div>
+        <button onclick="document.getElementById('taskModal').classList.remove('hidden')" class="bg-white text-indigo-600 px-4 py-2 rounded-md font-semibold hover:bg-indigo-50 transition">
+            + Nueva Tarjeta
+        </button>
     </header>
 
-    <!-- MAIN BOARD CONTAINER -->
-    <main class="flex-1 max-w-[1800px] w-full mx-auto p-4 md:p-6 overflow-x-auto">
-        
-        <!-- KANBAN BOARD GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-w-[1200px] h-[calc(100vh-140px)]">
+    <!-- Tablero Kanban -->
+    <main class="flex-1 overflow-x-auto p-6">
+        <div class="flex gap-6 items-start h-full" id="board">
             
-            <!-- COLUMN 1: BACKLOG -->
-            <div class="bg-dark-800/40 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-slate-800/80 bg-dark-800/80 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-slate-500 shadow-[0_0_8px_#94a3b8]"></div>
-                        <h2 class="font-bold text-slate-300 text-xs tracking-wider uppercase font-mono">01. Backlog</h2>
-                    </div>
-                    <span id="count-Backlog" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="col-backlog" data-status="Backlog" class="kanban-column flex-1 p-3 overflow-y-auto space-y-3">
-                    <!-- Las tarjetas se insertan dinámicamente aquí -->
-                </div>
+            <!-- Columnas -->
+            <div class="bg-gray-200 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Backlog">
+                <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">📌 Backlog</h2>
+                <div class="kanban-column space-y-3" id="col-Backlog"></div>
             </div>
 
-            <!-- COLUMN 2: ASIGNADO -->
-            <div class="bg-dark-800/40 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-slate-800/80 bg-dark-800/80 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div>
-                        <h2 class="font-bold text-slate-300 text-xs tracking-wider uppercase font-mono">02. Asignado</h2>
-                    </div>
-                    <span id="count-Asignado" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="col-asignado" data-status="Asignado" class="kanban-column flex-1 p-3 overflow-y-auto space-y-3">
-                    <!-- Las tarjetas se insertan dinámicamente aquí -->
-                </div>
+            <div class="bg-gray-200 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Asignado a">
+                <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">👤 Asignado a</h2>
+                <div class="kanban-column space-y-3" id="col-Asignado a"></div>
             </div>
 
-            <!-- COLUMN 3: EN PROGRESO -->
-            <div class="bg-dark-800/40 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-slate-800/80 bg-dark-800/80 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]"></div>
-                        <h2 class="font-bold text-slate-300 text-xs tracking-wider uppercase font-mono">03. En Progreso</h2>
-                    </div>
-                    <span id="count-En Progreso" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="col-en-progreso" data-status="En Progreso" class="kanban-column flex-1 p-3 overflow-y-auto space-y-3">
-                    <!-- Las tarjetas se insertan dinámicamente aquí -->
-                </div>
+            <div class="bg-blue-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="En progreso">
+                <h2 class="font-semibold text-blue-700 mb-4 flex items-center gap-2">⚙️ En progreso</h2>
+                <div class="kanban-column space-y-3" id="col-En progreso"></div>
             </div>
 
-            <!-- COLUMN 4: EN REVISIÓN -->
-            <div class="bg-dark-800/40 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-slate-800/80 bg-dark-800/80 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]"></div>
-                        <h2 class="font-bold text-slate-300 text-xs tracking-wider uppercase font-mono">04. En Revisión</h2>
-                    </div>
-                    <span id="count-En Revisión" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="col-en-revision" data-status="En Revisión" class="kanban-column flex-1 p-3 overflow-y-auto space-y-3">
-                    <!-- Las tarjetas se insertan dinámicamente aquí -->
-                </div>
+            <div class="bg-yellow-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="En revisión">
+                <h2 class="font-semibold text-yellow-700 mb-4 flex items-center gap-2">👀 En revisión</h2>
+                <div class="kanban-column space-y-3" id="col-En revisión"></div>
             </div>
 
-            <!-- COLUMN 5: FINALIZADO -->
-            <div class="bg-dark-800/40 border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden">
-                <div class="p-3.5 border-b border-slate-800/80 bg-dark-800/80 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
-                        <h2 class="font-bold text-slate-300 text-xs tracking-wider uppercase font-mono">05. Finalizado</h2>
-                    </div>
-                    <span id="count-Finalizado" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="col-finalizado" data-status="Finalizado" class="kanban-column flex-1 p-3 overflow-y-auto space-y-3">
-                    <!-- Las tarjetas se insertan dinámicamente aquí -->
-                </div>
+            <div class="bg-green-100 rounded-lg w-80 shrink-0 p-4 flex flex-col" data-status="Finalizado">
+                <h2 class="font-semibold text-green-700 mb-4 flex items-center gap-2">✅ Finalizado</h2>
+                <div class="kanban-column space-y-3" id="col-Finalizado"></div>
             </div>
 
         </div>
     </main>
 
-    <!-- MODAL DE CREACIÓN / EDICIÓN -->
-    <div id="modal-task" class="fixed inset-0 bg-dark-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
-        <div class="bg-dark-800 border border-slate-700/80 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative transform scale-95 transition-transform duration-200" id="modal-content">
-            
-            <!-- Header Modal -->
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700/50">
-                <h3 id="modal-title" class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="ph-bold ph-plus-circle text-indigo-400"></i>
-                    <span>Crear Nueva Tarjeta de Pruebas</span>
-                </h3>
-                <button id="btn-close-modal" class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-700/50">
-                    <i class="ph-bold ph-x text-lg"></i>
-                </button>
-            </div>
+    <!-- Modal para Nueva Tarjeta -->
+    <div id="taskModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">Crear Nueva Tarjeta</h2>
+            <form id="taskForm" class="space-y-3">
+                <input type="text" id="titulo" placeholder="Título de la tarea" class="w-full border rounded p-2" required>
+                <textarea id="descripcion" placeholder="Descripción detallada..." class="w-full border rounded p-2 h-24" required></textarea>
+                
+                <select id="responsable" class="w-full border rounded p-2" required>
+                    <option value="" disabled selected>Asignar a...</option>
+                    <option value="Miguel">Miguel (Dev)</option>
+                    <option value="Cristian">Cristian (Design)</option>
+                    <option value="Luis">Luis (AI Prompter)</option>
+                </select>
 
-            <!-- Form -->
-            <form id="form-task" class="space-y-4">
-                <input type="hidden" id="task-id">
-
-                <!-- Título -->
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Título de la prueba / HU *</label>
-                    <input type="text" id="task-title" required class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" placeholder="Ej: Caso de Prueba 1: Login de Usuario">
-                </div>
-
-                <!-- Descripción -->
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Descripción / Precondiciones</label>
-                    <textarea id="task-desc" rows="3" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none" placeholder="Detalla los pasos o requerimientos necesarios..."></textarea>
-                </div>
-
-                <!-- Grid de dos columnas para selectores -->
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Estado -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Estado *</label>
-                        <select id="task-status" required class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all">
-                            <option value="Backlog">Backlog</option>
-                            <option value="Asignado">Asignado</option>
-                            <option value="En Progreso">En Progreso</option>
-                            <option value="En Revisión">En Revisión</option>
-                            <option value="Finalizado">Finalizado</option>
-                        </select>
+                <div class="flex gap-2">
+                    <div class="w-1/2">
+                        <label class="text-xs text-gray-500">Fecha Inicio</label>
+                        <input type="date" id="fechaInicio" class="w-full border rounded p-2" required>
                     </div>
-
-                    <!-- Prioridad -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Prioridad *</label>
-                        <select id="task-priority" required class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all">
-                            <option value="Baja">Baja</option>
-                            <option value="Media" selected>Media</option>
-                            <option value="Alta">Alta</option>
-                            <option value="Crítica">Crítica</option>
-                        </select>
+                    <div class="w-1/2">
+                        <label class="text-xs text-gray-500">Fecha Fin</label>
+                        <input type="date" id="fechaFin" class="w-full border rounded p-2" required>
                     </div>
                 </div>
-
-                <!-- Grid de asignados y fecha -->
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Asignado a -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Asignado a</label>
-                        <input type="text" id="task-assignee" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all" placeholder="Ej: Analista QA">
-                    </div>
-
-                    <!-- Fecha Límite -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Fecha Límite</label>
-                        <input type="date" id="task-due-date" class="w-full bg-dark-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all">
-                    </div>
-                </div>
-
-                <!-- Botones de Acción -->
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-700/50 mt-6">
-                    <button type="button" id="btn-cancel-modal" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-600/20 transition-all">
-                        Guardar Tarjeta
-                    </button>
+                
+                <input type="url" id="url" placeholder="URL de referencia (Opcional)" class="w-full border rounded p-2">
+                
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="document.getElementById('taskModal').classList.add('hidden')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Crear Tarjeta</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Script principal de lógica JS -->
     <script src="app.js"></script>
 </body>
 </html>
