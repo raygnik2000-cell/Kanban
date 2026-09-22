@@ -162,3 +162,5 @@ async function actualizarEstadoAPI(id, nuevoEstado) {
     }
 }
 
+// Iniciar aplicación
+cargarTareas();
