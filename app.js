@@ -1,25 +1,9 @@
-// URL de la API desplegada en Google Apps Script
+// REEMPLAZA ESTO CON LA URL QUE TE DÉ GOOGLE APPS SCRIPT AL DESPLEGAR
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
 
 // DOM Elements
 const columns = document.querySelectorAll('.kanban-column');
 const form = document.getElementById('taskForm');
-
-// Función para recontar y actualizar los contadores superiores de cada columna
-function actualizarContadores() {
-    columns.forEach(col => {
-        // Cuenta solo las tarjetas dentro de la columna
-        const total = col.querySelectorAll('.card').length;
-        
-        // Busca el elemento del contador dentro del contenedor padre de la columna
-        const parent = col.parentElement;
-        const badge = parent.querySelector('.task-count, span.bg-gray-200, span.rounded-full');
-        
-        if (badge) {
-            badge.innerText = total;
-        }
-    });
-}
 
 // Event Listeners para Drag and Drop en Columnas
 columns.forEach(col => {
@@ -43,7 +27,6 @@ columns.forEach(col => {
         if (card && newStatus) {
             col.appendChild(card);
             actualizarEstadoAPI(taskId, newStatus);
-            actualizarContadores(); // Actualiza los contadores al mover una tarjeta
         }
     });
 });
@@ -57,8 +40,6 @@ async function cargarTareas() {
         tareas.forEach(tarea => {
             crearTarjetaUI(tarea);
         });
-
-        actualizarContadores(); // Actualiza contadores tras cargar la lista inicial
     } catch (error) {
         console.error("Error al cargar tareas:", error);
     }
@@ -73,17 +54,17 @@ function crearTarjetaUI(tarea) {
 
     card.innerHTML = `
         <div class="flex justify-between items-start mb-1">
-            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo || ''}</h3>
+            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo}</h3>
             <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
                 🗑️
             </button>
         </div>
-        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion || ''}</p>
+        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion}</p>
         <div class="flex justify-between items-center mb-2">
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable || ''}</span>
+            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable}</span>
         </div>
         <div class="text-[10px] text-gray-400 flex justify-between">
-            <span>📅 ${tarea.FechaInicio || ''} - ${tarea.FechaFin || ''}</span>
+            <span>📅 ${tarea.FechaInicio} - ${tarea.FechaFin}</span>
         </div>
         ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
     `;
@@ -99,9 +80,7 @@ function crearTarjetaUI(tarea) {
     });
 
     const columna = document.getElementById(`col-${tarea.Estado}`);
-    if (columna) {
-        columna.appendChild(card);
-    }
+    if (columna) columna.appendChild(card);
 }
 
 // Función para eliminar tarjeta
@@ -113,7 +92,6 @@ async function eliminarTarjeta(id) {
     if (card) {
         // Remover de la interfaz inmediatamente
         card.remove();
-        actualizarContadores(); // Actualiza contadores al borrar
     }
 
     // Petición al backend para borrar la fila en Google Sheets
@@ -155,19 +133,9 @@ form.addEventListener('submit', async (e) => {
         
         const res = await response.json();
         if (res.success) {
-            const nuevaTareaUI = {
-                ID: res.id,
-                Titulo: data.titulo,
-                Descripcion: data.descripcion,
-                Responsable: data.responsable,
-                FechaInicio: data.fechaInicio,
-                FechaFin: data.fechaFin,
-                URL: data.url,
-                Estado: 'Backlog'
-            };
-
-            crearTarjetaUI(nuevaTareaUI);
-            actualizarContadores(); // Actualiza contadores al agregar una tarjeta nueva
+            data.ID = res.id;
+            data.Estado = 'Backlog';
+            crearTarjetaUI(data);
             document.getElementById('taskModal').classList.add('hidden');
             form.reset();
         }
@@ -196,3 +164,4 @@ async function actualizarEstadoAPI(id, nuevoEstado) {
 
 // Iniciar aplicación
 cargarTareas();
+
