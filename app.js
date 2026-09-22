@@ -48,6 +48,46 @@ async function cargarTareas() {
 // Crear Tarjeta en el DOM (con botón de eliminar)
 function crearTarjetaUI(tarea) {
     const card = document.createElement('div');
+    // Estilo universal de la tarjeta
+    card.className = "card bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition cursor-grab active:cursor-grabbing";
+    card.draggable = true;
+    card.id = tarea.ID;
+
+    card.innerHTML = `
+        <h3 class="font-bold text-slate-800 text-sm mb-1 leading-snug">${tarea.Titulo}</h3>
+        <p class="text-xs text-slate-500 mb-3 line-clamp-2 leading-relaxed">${tarea.Descripcion}</p>
+        
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+            <span class="bg-indigo-50 text-indigo-700 text-[11px] font-medium px-2 py-0.5 rounded-md border border-indigo-100">
+                👤 ${tarea.Responsable}
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">
+                ${tarea.FechaFin}
+            </span>
+        </div>
+
+        ${tarea.URL ? `
+            <a href="${tarea.URL}" target="_blank" class="mt-2.5 flex items-center justify-center gap-1 text-xs text-indigo-600 font-medium hover:underline bg-slate-50 py-1 rounded border border-slate-200/60">
+                🔗 Ver Entregable
+            </a>
+        ` : ''}
+    `;
+
+    // Eventos Drag & Drop obligatorios
+    card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', card.id);
+        setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+    });
+
+    const columna = document.getElementById(`col-${tarea.Estado}`);
+    if (columna) columna.appendChild(card);
+}
+function crearTarjetaUI(tarea) {
+    const card = document.createElement('div');
     card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition relative group";
     card.draggable = true;
     card.id = tarea.ID;
