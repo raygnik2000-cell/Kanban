@@ -3,31 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LMS AI Kanban - Glassmorphism</title>
+    <title>LMS AI Kanban - Warm Modern</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; }
         .kanban-column { min-height: 65vh; }
-        .card.dragging { opacity: 0.4; transform: scale(0.97); }
+        .card.dragging { opacity: 0.4; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-100 via-gray-50 to-indigo-50/50 text-slate-800 h-screen flex flex-col font-sans overflow-x-hidden antialiased">
+<body class="bg-[#F8F6F0] text-stone-800 h-screen flex flex-col font-sans overflow-x-hidden antialiased">
 
-    <!-- Header minimalista -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 p-4 sticky top-0 z-20 flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-500/20">
-                AI
-            </div>
-            <div>
-                <h1 class="text-lg font-bold text-slate-900 tracking-tight">LMS Web Dev Kanban</h1>
-                <p class="text-xs text-slate-500">Gestión de tareas y prototipos</p>
-            </div>
+    <!-- Header Warm -->
+    <header class="bg-stone-900 text-stone-100 p-4 sticky top-0 z-20 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-lg font-bold tracking-tight text-amber-400">LMS AI <span class="text-stone-100">Workspace</span></h1>
+            <p class="text-xs text-stone-400">Tablero de Gestión</p>
         </div>
         
-        <button onclick="document.getElementById('taskModal').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
-            <span>+</span> Nueva Tarjeta
+        <button onclick="document.getElementById('taskModal').classList.remove('hidden')" class="bg-amber-400 hover:bg-amber-300 text-stone-950 font-semibold text-sm px-4 py-2 rounded-lg transition shadow-sm">
+            + Nueva Tarjeta
         </button>
     </header>
 
@@ -35,47 +30,47 @@
     <main class="flex-1 overflow-x-auto p-6">
         <div class="flex gap-5 items-start h-full min-w-max" id="board">
             
-            <div class="bg-slate-200/60 border border-slate-300/50 rounded-2xl w-80 shrink-0 p-4 flex flex-col backdrop-blur-sm" data-status="Backlog">
-                <h2 class="font-bold text-slate-700 text-xs tracking-wider uppercase mb-3 px-1">📌 Backlog</h2>
+            <div class="bg-stone-200/70 border border-stone-300/80 rounded-xl w-80 shrink-0 p-4 flex flex-col" data-status="Backlog">
+                <h2 class="font-bold text-stone-700 text-xs tracking-wider uppercase mb-3">📌 Backlog</h2>
                 <div class="kanban-column space-y-3" id="col-Backlog"></div>
             </div>
 
-            <div class="bg-slate-200/60 border border-slate-300/50 rounded-2xl w-80 shrink-0 p-4 flex flex-col backdrop-blur-sm" data-status="Asignado a">
-                <h2 class="font-bold text-slate-700 text-xs tracking-wider uppercase mb-3 px-1">👤 Asignado a</h2>
+            <div class="bg-stone-200/70 border border-stone-300/80 rounded-xl w-80 shrink-0 p-4 flex flex-col" data-status="Asignado a">
+                <h2 class="font-bold text-stone-700 text-xs tracking-wider uppercase mb-3">👤 Asignado a</h2>
                 <div class="kanban-column space-y-3" id="col-Asignado a"></div>
             </div>
 
-            <div class="bg-blue-100/50 border border-blue-200/60 rounded-2xl w-80 shrink-0 p-4 flex flex-col backdrop-blur-sm" data-status="En progreso">
-                <h2 class="font-bold text-blue-700 text-xs tracking-wider uppercase mb-3 px-1">⚙️ En progreso</h2>
+            <div class="bg-sky-100/70 border border-sky-200 rounded-xl w-80 shrink-0 p-4 flex flex-col" data-status="En progreso">
+                <h2 class="font-bold text-sky-800 text-xs tracking-wider uppercase mb-3">⚙️ En progreso</h2>
                 <div class="kanban-column space-y-3" id="col-En progreso"></div>
             </div>
 
-            <div class="bg-amber-100/50 border border-amber-200/60 rounded-2xl w-80 shrink-0 p-4 flex flex-col backdrop-blur-sm" data-status="En revisión">
-                <div class="flex justify-between items-center mb-3 px-1">
-                    <h2 class="font-bold text-amber-700 text-xs tracking-wider uppercase">👀 En revisión</h2>
-                    <span class="text-[10px] bg-amber-200/80 text-amber-800 font-semibold px-2 py-0.5 rounded-full">Email Trigger</span>
+            <div class="bg-amber-100/70 border border-amber-200 rounded-xl w-80 shrink-0 p-4 flex flex-col" data-status="En revisión">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-amber-800 text-xs tracking-wider uppercase">👀 En revisión</h2>
+                    <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono">Notifica Email</span>
                 </div>
                 <div class="kanban-column space-y-3" id="col-En revisión"></div>
             </div>
 
-            <div class="bg-emerald-100/50 border border-emerald-200/60 rounded-2xl w-80 shrink-0 p-4 flex flex-col backdrop-blur-sm" data-status="Finalizado">
-                <h2 class="font-bold text-emerald-700 text-xs tracking-wider uppercase mb-3 px-1">✅ Finalizado</h2>
+            <div class="bg-emerald-100/70 border border-emerald-200 rounded-xl w-80 shrink-0 p-4 flex flex-col" data-status="Finalizado">
+                <h2 class="font-bold text-emerald-800 text-xs tracking-wider uppercase mb-3">✅ Finalizado</h2>
                 <div class="kanban-column space-y-3" id="col-Finalizado"></div>
             </div>
 
         </div>
     </main>
 
-    <!-- Modal de Creación -->
-    <div id="taskModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100">
-            <h2 class="text-lg font-bold text-slate-900 mb-4">Nueva Tarjeta</h2>
+    <!-- Modal -->
+    <div id="taskModal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-[#FBF9F5] border border-stone-200 rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 class="text-lg font-bold text-stone-900 mb-4">Nueva Tarjeta</h2>
             
             <form id="taskForm" class="space-y-3">
-                <input type="text" id="titulo" placeholder="Título de la tarea" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition" required>
-                <textarea id="descripcion" placeholder="Descripción de la actividad..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition h-20" required></textarea>
+                <input type="text" id="titulo" placeholder="Título de la tarea" class="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-amber-500" required>
+                <textarea id="descripcion" placeholder="Descripción..." class="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-amber-500 h-20" required></textarea>
                 
-                <select id="responsable" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition" required>
+                <select id="responsable" class="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-sm focus:outline-none focus:border-amber-500" required>
                     <option value="" disabled selected>Asignar responsable...</option>
                     <option value="Carlos">Carlos (Dev)</option>
                     <option value="Maria">Maria (Design)</option>
@@ -84,20 +79,20 @@
 
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="text-[11px] font-semibold text-slate-400 ml-1">FECHA INICIO</label>
-                        <input type="date" id="fechaInicio" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:border-indigo-500" required>
+                        <label class="text-[10px] font-bold text-stone-500 uppercase">Inicio</label>
+                        <input type="date" id="fechaInicio" class="w-full bg-white border border-stone-300 rounded-lg p-2 text-xs" required>
                     </div>
                     <div>
-                        <label class="text-[11px] font-semibold text-slate-400 ml-1">FECHA FIN</label>
-                        <input type="date" id="fechaFin" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:border-indigo-500" required>
+                        <label class="text-[10px] font-bold text-stone-500 uppercase">Fin</label>
+                        <input type="date" id="fechaFin" class="w-full bg-white border border-stone-300 rounded-lg p-2 text-xs" required>
                     </div>
                 </div>
                 
-                <input type="url" id="url" placeholder="URL del entregable (opcional)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                <input type="url" id="url" placeholder="Link del entregable" class="w-full bg-white border border-stone-300 rounded-lg p-2.5 text-sm">
                 
-                <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
-                    <button type="button" onclick="document.getElementById('taskModal').classList.add('hidden')" class="px-4 py-2 text-sm text-slate-500 hover:text-slate-800 font-medium">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm transition">Crear Tarjeta</button>
+                <div class="flex justify-end gap-2 mt-5 pt-3 border-t border-stone-200">
+                    <button type="button" onclick="document.getElementById('taskModal').classList.add('hidden')" class="px-4 py-2 text-sm text-stone-600 font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-stone-900 text-amber-400 font-semibold text-sm rounded-lg hover:bg-stone-800 transition">Guardar</button>
                 </div>
             </form>
         </div>
