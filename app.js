@@ -1,172 +1,176 @@
-// Configuración global
-const SPRINT_MASTER_EMAIL = "sprintmaster@tu-dominio.com"; // Cambiar por el correo del Sprint Master
-const SHEET_NAME = "Tarjetas";
+// URL de la API desplegada en Google Apps Script
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
 
-/**
- * Endpoint GET: Retorna todas las tarjetas guardadas en la hoja de cálculo
- */
-function doGet(e) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    if (!sheet) {
-      return responseJSON({ status: "error", message: "La pestaña 'Tarjetas' no existe" });
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    if (data.length <= 1) {
-      return responseJSON([]);
-    }
-    
-    const headers = data[0];
-    const cards = data.slice(1).map(row => {
-      let obj = {};
-      headers.forEach((header, index) => {
-        if (row[index] instanceof Date) {
-          obj[header] = Utilities.formatDate(row[index], Session.getScriptTimeZone(), "yyyy-MM-dd");
-        } else {
-          obj[header] = row[index];
-        }
-      });
-      return obj;
+// DOM Elements
+const columns = document.querySelectorAll('.kanban-column');
+const form = document.getElementById('taskForm');
+
+// Event Listeners para Drag and Drop en Columnas
+columns.forEach(col => {
+    col.addEventListener('dragover', e => {
+        e.preventDefault();
+        col.parentElement.classList.add('ring-2', 'ring-indigo-400');
     });
-
-    return responseJSON(cards);
-  } catch (error) {
-    return responseJSON({ status: "error", message: error.toString() });
-  }
-}
-
-/**
- * Endpoint POST: Maneja movimientos y ediciones de tarjetas
- */
-function doPost(e) {
-  try {
-    const body = JSON.parse(e.postData.contents);
-    const { accion, cardData } = body;
-
-    if (!cardData || !cardData.id) {
-      return responseJSON({ status: "error", message: "Falta información de la tarjeta (id es requerido)" });
-    }
-
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
     
-    // Mapeo de índices de columna
-    const idIdx = headers.indexOf("id");
-    const tituloIdx = headers.indexOf("titulo");
-    const descIdx = headers.indexOf("descripcion");
-    const respIdx = headers.indexOf("responsable");
-    const fInicioIdx = headers.indexOf("fechaInicio");
-    const fFinIdx = headers.indexOf("fechaFin");
-    const urlIdx = headers.indexOf("url");
-    const estadoIdx = headers.indexOf("estado");
-
-    if (idIdx === -1) {
-      return responseJSON({ status: "error", message: "La columna 'id' no se encuentra en la hoja" });
-    }
-
-    let cardRow = -1;
-    let datosAntiguos = {};
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIdx].toString() === cardData.id.toString()) {
-        cardRow = i + 1; // Fila base 1
-        datosAntiguos = {
-          estado: data[i][estadoIdx],
-          titulo: data[i][tituloIdx],
-          responsable: data[i][respIdx],
-          url: data[i][urlIdx]
-        };
-        break;
-      }
-    }
-
-    if (cardRow === -1) {
-      return responseJSON({ status: "error", message: "Tarjeta no encontrada con el ID indicado" });
-    }
-
-    // ACCIÓN 1: Mover tarjeta entre columnas
-    if (accion === "mover") {
-      sheet.getRange(cardRow, estadoIdx + 1).setValue(cardData.nuevoEstado);
-
-      // Enviar correo si pasa a "En revisión"
-      if (cardData.nuevoEstado === "En revisión" && datosAntiguos.estado !== "En revisión") {
-        enviarNotificacionRevision({
-          titulo: datosAntiguos.titulo,
-          responsable: datosAntiguos.responsable,
-          url: datosAntiguos.url
-        });
-      }
-      return responseJSON({ status: "success", message: "Estado actualizado exitosamente" });
-    }
-
-    // ACCIÓN 2: Editar tarjeta completa
-    if (accion === "editar") {
-      if (tituloIdx !== -1) sheet.getRange(cardRow, tituloIdx + 1).setValue(cardData.titulo);
-      if (descIdx !== -1) sheet.getRange(cardRow, descIdx + 1).setValue(cardData.descripcion);
-      if (respIdx !== -1) sheet.getRange(cardRow, respIdx + 1).setValue(cardData.responsable);
-      if (fInicioIdx !== -1) sheet.getRange(cardRow, fInicioIdx + 1).setValue(cardData.fechaInicio);
-      if (fFinIdx !== -1) sheet.getRange(cardRow, fFinIdx + 1).setValue(cardData.fechaFin);
-      if (urlIdx !== -1) sheet.getRange(cardRow, urlIdx + 1).setValue(cardData.url);
-      if (estadoIdx !== -1 && cardData.estado) {
-        const estadoAnterior = datosAntiguos.estado;
-        sheet.getRange(cardRow, estadoIdx + 1).setValue(cardData.estado);
+    col.addEventListener('dragleave', e => {
+        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
+    });
+    
+    col.addEventListener('drop', e => {
+        e.preventDefault();
+        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
         
-        if (cardData.estado === "En revisión" && estadoAnterior !== "En revisión") {
-          enviarNotificacionRevision({
-            titulo: cardData.titulo,
-            responsable: cardData.responsable,
-            url: cardData.url
-          });
+        const taskId = e.dataTransfer.getData('text/plain');
+        const card = document.getElementById(taskId);
+        const newStatus = col.parentElement.getAttribute('data-status');
+        
+        if (card && newStatus) {
+            col.appendChild(card);
+            actualizarEstadoAPI(taskId, newStatus);
         }
-      }
+    });
+});
 
-      return responseJSON({ status: "success", message: "Tarjeta editada correctamente" });
+// Cargar tareas iniciales
+async function cargarTareas() {
+    try {
+        const response = await fetch(GAS_API_URL);
+        const tareas = await response.json();
+        
+        tareas.forEach(tarea => {
+            crearTarjetaUI(tarea);
+        });
+    } catch (error) {
+        console.error("Error al cargar tareas:", error);
+    }
+}
+
+// Crear Tarjeta en el DOM (con botón de eliminar)
+function crearTarjetaUI(tarea) {
+    const card = document.createElement('div');
+    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition relative group";
+    card.draggable = true;
+    card.id = tarea.ID;
+
+    card.innerHTML = `
+        <div class="flex justify-between items-start mb-1">
+            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo || ''}</h3>
+            <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
+                🗑️
+            </button>
+        </div>
+        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion || ''}</p>
+        <div class="flex justify-between items-center mb-2">
+            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable || ''}</span>
+        </div>
+        <div class="text-[10px] text-gray-400 flex justify-between">
+            <span>📅 ${tarea.FechaInicio || ''} - ${tarea.FechaFin || ''}</span>
+        </div>
+        ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
+    `;
+
+    // Eventos Drag Card
+    card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', card.id);
+        setTimeout(() => card.classList.add('dragging'), 0);
+    });
+    
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+    });
+
+    const columna = document.getElementById(`col-${tarea.Estado}`);
+    if (columna) columna.appendChild(card);
+}
+
+// Función para eliminar tarjeta
+async function eliminarTarjeta(id) {
+    const confirmacion = confirm("¿Estás seguro de que deseas eliminar esta tarjeta?");
+    if (!confirmacion) return;
+
+    const card = document.getElementById(id);
+    if (card) {
+        // Remover de la interfaz inmediatamente
+        card.remove();
     }
 
-    return responseJSON({ status: "error", message: "Acción no válida" });
-
-  } catch (error) {
-    return responseJSON({ status: "error", message: error.toString() });
-  }
+    // Petición al backend para borrar la fila en Google Sheets
+    try {
+        await fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'eliminar', id: id })
+        });
+    } catch (error) {
+        console.error("Error al eliminar la tarjeta:", error);
+        alert("Hubo un problema al eliminar la tarjeta de la base de datos.");
+    }
 }
 
-/**
- * Notificación por correo
- */
-function enviarNotificacionRevision(card) {
-  const asunto = `[LMS Kanban] Tarea lista para revisión: ${card.titulo}`;
-  const cuerpoHtml = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-      <h2 style="color: #2563EB;">Nueva tarea en estado de Revisión</h2>
-      <p>Hola Sprint Master,</p>
-      <p>La siguiente tarea requiere tu validación:</p>
-      <ul>
-        <li><strong>Título:</strong> ${card.titulo}</li>
-        <li><strong>Responsable:</strong> ${card.responsable || 'Sin asignar'}</li>
-        <li><strong>Entregable / URL:</strong> <a href="${card.url}" target="_blank">${card.url || 'Sin enlace adjunto'}</a></li>
-      </ul>
-      <p style="margin-top: 20px;">Por favor, revisa el trabajo y actualiza la tarjeta a <strong>Finalizado</strong> o reasígnala si requiere ajustes.</p>
-    </div>
-  `;
+// Enviar Nueva Tarea al Backend
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    btnSubmit.innerText = "Guardando...";
+    btnSubmit.disabled = true;
 
-  try {
-    MailApp.sendEmail({
-      to: SPRINT_MASTER_EMAIL,
-      subject: asunto,
-      htmlBody: cuerpoHtml
-    });
-  } catch (err) {
-    console.error("Error al enviar email: " + err.toString());
-  }
+    const data = {
+        action: 'crear',
+        titulo: document.getElementById('titulo').value,
+        descripcion: document.getElementById('descripcion').value,
+        responsable: document.getElementById('responsable').value,
+        fechaInicio: document.getElementById('fechaInicio').value,
+        fechaFin: document.getElementById('fechaFin').value,
+        url: document.getElementById('url').value
+    };
+
+    try {
+        const response = await fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+        });
+        
+        const res = await response.json();
+        if (res.success) {
+            // Mapeo explicito de llaves para evitar discrepancias al crear la tarjeta localmente
+            const nuevaTareaUI = {
+                ID: res.id,
+                Titulo: data.titulo,
+                Descripcion: data.descripcion,
+                Responsable: data.responsable,
+                FechaInicio: data.fechaInicio,
+                FechaFin: data.fechaFin,
+                URL: data.url,
+                Estado: 'Backlog'
+            };
+
+            crearTarjetaUI(nuevaTareaUI);
+            document.getElementById('taskModal').classList.add('hidden');
+            form.reset();
+        }
+    } catch (error) {
+        alert("Error al guardar la tarea");
+    } finally {
+        btnSubmit.innerText = "Crear Tarjeta";
+        btnSubmit.disabled = false;
+    }
+});
+
+// Actualizar estado (Al hacer Drag & Drop)
+async function actualizarEstadoAPI(id, nuevoEstado) {
+    const data = { action: 'actualizarEstado', id: id, estado: nuevoEstado };
+    
+    try {
+        await fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+        });
+    } catch (error) {
+        console.error("Error al actualizar estado:", error);
+    }
 }
 
-/**
- * Auxiliar para respuesta JSON
- */
-function responseJSON(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
+// Iniciar aplicación
+cargarTareas();
