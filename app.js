@@ -1,4 +1,24 @@
-// URL de la API desplegada en Google Apps Script
+// URL de la API desplegada en Google Apps Script// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBEZkGjUe7UYz3pGpvHgZt-Y35yH_948gI",
+  authDomain: "lms-kanban.firebaseapp.com",
+  projectId: "lms-kanban",
+  storageBucket: "lms-kanban.firebasestorage.app",
+  messagingSenderId: "968740905716",
+  appId: "1:968740905716:web:dc698577bc2730927b34a1",
+  measurementId: "G-V5HG9S6GQR"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
 
 // DOM Elements
