@@ -1,3 +1,12 @@
+// 1. CONFIGURACIÓN DE FIREBASE (Reemplaza con tus datos reales de la consola)
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBEZkGjUe7UYz3pGpvHgZt-Y35yH_948gI",
   authDomain: "lms-kanban.firebaseapp.com",
@@ -11,178 +20,130 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec"; 
 
-// DOM Elements
-const columns = document.querySelectorAll('.kanban-column');
-const form = document.getElementById('taskForm');
+// URL de tu API en Google Apps Script
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzD6jT1CP7Og4HfmFFG9xNnTJEwS7BMuvb9p1yMpiI--HnGcWv1Gb1GWylbuTVYmFgf6A/exec";
 
-// Event Listeners para Drag and Drop en Columnas
-columns.forEach(col => {
-    col.addEventListener('dragover', e => {
-        e.preventDefault();
-        col.parentElement.classList.add('ring-2', 'ring-indigo-400');
-    });
-    
-    col.addEventListener('dragleave', e => {
-        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
-    });
-    
-    col.addEventListener('drop', e => {
-        e.preventDefault();
-        col.parentElement.classList.remove('ring-2', 'ring-indigo-400');
-        
-        const taskId = e.dataTransfer.getData('text/plain');
-        const card = document.getElementById(taskId);
-        const newStatus = col.parentElement.getAttribute('data-status');
-        
-        if (card && newStatus) {
-            col.appendChild(card);
-            actualizarEstadoAPI(taskId, newStatus);
-        }
-    });
+// DOM Elements & Modales
+const modalLogin = document.getElementById('modal-login');
+const modalRegister = document.getElementById('modal-register');
+const formLogin = document.getElementById('form-login');
+const formRegister = document.getElementById('form-register');
+const loginError = document.getElementById('login-error');
+const regError = document.getElementById('reg-error');
+
+// Abrir / Cerrar Modales
+document.getElementById('btn-open-login')?.addEventListener('click', () => openAuthModal(modalLogin));
+document.getElementById('btn-close-login')?.addEventListener('click', () => closeAuthModal(modalLogin));
+document.getElementById('btn-open-register')?.addEventListener('click', () => openAuthModal(modalRegister));
+document.getElementById('btn-close-register')?.addEventListener('click', () => closeAuthModal(modalRegister));
+
+function openAuthModal(modal) {
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modal.querySelector('div')?.classList.remove('scale-95');
+    }, 10);
+}
+
+function closeAuthModal(modal) {
+    modal.classList.add('opacity-0');
+    modal.querySelector('div')?.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+// --- AUTENTICACIÓN CON FIREBASE ---
+
+// 1. Observador del estado de la sesión (Detecta si el usuario inicia o cierra sesión)
+auth.onAuthStateChanged((user) => {
+    const authSection = document.getElementById('user-auth-section');
+    const loggedSection = document.getElementById('user-logged-section');
+    const displayName = document.getElementById('user-display-name');
+
+    if (user) {
+        authSection?.classList.add('hidden');
+        loggedSection?.classList.remove('hidden');
+        if (displayName) displayName.textContent = user.displayName || user.email;
+    } else {
+        authSection?.classList.remove('hidden');
+        loggedSection?.classList.add('hidden');
+        if (displayName) displayName.textContent = '';
+    }
 });
 
-// Cargar tareas iniciales
-async function cargarTareas() {
-    try {
-        const response = await fetch(GAS_API_URL);
-        const tareas = await response.json();
-        
-        tareas.forEach(tarea => {
-            crearTarjetaUI(tarea);
-        });
-    } catch (error) {
-        console.error("Error al cargar tareas:", error);
-    }
-}
-
-// Crear Tarjeta en el DOM (con botón de eliminar)
-function crearTarjetaUI(tarea) {
-    const card = document.createElement('div');
-    card.className = "card bg-white p-4 rounded shadow cursor-grab border-l-4 border-indigo-500 hover:shadow-md transition relative group";
-    card.draggable = true;
-    card.id = tarea.ID;
-
-    card.innerHTML = `
-        <div class="flex justify-between items-start mb-1">
-            <h3 class="font-bold text-gray-800 text-sm flex-1 pr-2">${tarea.Titulo || ''}</h3>
-            <button onclick="eliminarTarjeta('${tarea.ID}')" title="Eliminar tarjeta" class="text-gray-400 hover:text-red-500 transition p-1 rounded">
-                🗑️
-            </button>
-        </div>
-        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${tarea.Descripcion || ''}</p>
-        <div class="flex justify-between items-center mb-2">
-            <span class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded">👤 ${tarea.Responsable || ''}</span>
-        </div>
-        <div class="text-[10px] text-gray-400 flex justify-between">
-            <span>📅 ${tarea.FechaInicio || ''} - ${tarea.FechaFin || ''}</span>
-        </div>
-        ${tarea.URL ? `<a href="${tarea.URL}" target="_blank" class="text-xs text-blue-500 hover:underline mt-2 inline-block">🔗 Ver Entregable</a>` : ''}
-    `;
-
-    // Eventos Drag Card
-    card.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', card.id);
-        setTimeout(() => card.classList.add('dragging'), 0);
-    });
-    
-    card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-    });
-
-    const columna = document.getElementById(`col-${tarea.Estado}`);
-    if (columna) columna.appendChild(card);
-}
-
-// Función para eliminar tarjeta
-async function eliminarTarjeta(id) {
-    const confirmacion = confirm("¿Estás seguro de que deseas eliminar esta tarjeta?");
-    if (!confirmacion) return;
-
-    const card = document.getElementById(id);
-    if (card) {
-        // Remover de la interfaz inmediatamente
-        card.remove();
-    }
-
-    // Petición al backend para borrar la fila en Google Sheets
-    try {
-        await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'eliminar', id: id })
-        });
-    } catch (error) {
-        console.error("Error al eliminar la tarjeta:", error);
-        alert("Hubo un problema al eliminar la tarjeta de la base de datos.");
-    }
-}
-
-// Enviar Nueva Tarea al Backend
-form.addEventListener('submit', async (e) => {
+// 2. Registro con Correo y Contraseña
+formRegister?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btnSubmit = form.querySelector('button[type="submit"]');
-    btnSubmit.innerText = "Guardando...";
-    btnSubmit.disabled = true;
+    if (regError) regError.classList.add('hidden');
 
-    const data = {
-        action: 'crear',
-        titulo: document.getElementById('titulo').value,
-        descripcion: document.getElementById('descripcion').value,
-        responsable: document.getElementById('responsable').value,
-        fechaInicio: document.getElementById('fechaInicio').value,
-        fechaFin: document.getElementById('fechaFin').value,
-        url: document.getElementById('url').value
-    };
+    const name = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
 
     try {
-        const response = await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(data)
-        });
-        
-        const res = await response.json();
-        if (res.success) {
-            // Mapeo explicito de llaves para evitar discrepancias al crear la tarjeta localmente
-            const nuevaTareaUI = {
-                ID: res.id,
-                Titulo: data.titulo,
-                Descripcion: data.descripcion,
-                Responsable: data.responsable,
-                FechaInicio: data.fechaInicio,
-                FechaFin: data.fechaFin,
-                URL: data.url,
-                Estado: 'Backlog'
-            };
-
-            crearTarjetaUI(nuevaTareaUI);
-            document.getElementById('taskModal').classList.add('hidden');
-            form.reset();
-        }
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        // Actualizar el nombre de usuario en Firebase Profile
+        await userCredential.user.updateProfile({ displayName: name });
+        closeAuthModal(modalRegister);
+        formRegister.reset();
     } catch (error) {
-        alert("Error al guardar la tarea");
-    } finally {
-        btnSubmit.innerText = "Crear Tarjeta";
-        btnSubmit.disabled = false;
+        if (regError) {
+            regError.textContent = obtenerMensajeError(error.code);
+            regError.classList.remove('hidden');
+        }
     }
 });
 
-// Actualizar estado (Al hacer Drag & Drop)
-async function actualizarEstadoAPI(id, nuevoEstado) {
-    const data = { action: 'actualizarEstado', id: id, estado: nuevoEstado };
-    
+// 3. Inicio de Sesión con Correo y Contraseña
+formLogin?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (loginError) loginError.classList.add('hidden');
+
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
     try {
-        await fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(data)
-        });
+        await auth.signInWithEmailAndPassword(email, password);
+        closeAuthModal(modalLogin);
+        formLogin.reset();
     } catch (error) {
-        console.error("Error al actualizar estado:", error);
+        if (loginError) {
+            loginError.textContent = obtenerMensajeError(error.code);
+            loginError.classList.remove('hidden');
+        }
+    }
+});
+
+// 4. Inicio de Sesión / Registro con Google (Popup)
+document.getElementById('btn-google-login')?.addEventListener('click', async () => {
+    try {
+        await auth.signInWithPopup(googleProvider);
+        if (modalLogin) closeAuthModal(modalLogin);
+        if (modalRegister) closeAuthModal(modalRegister);
+    } catch (error) {
+        alert("Error al iniciar sesión con Google: " + error.message);
+    }
+});
+
+// 5. Cerrar Sesión
+document.getElementById('btn-logout')?.addEventListener('click', () => {
+    auth.signOut();
+});
+
+// Helper de errores traducidos
+function obtenerMensajeError(code) {
+    switch (code) {
+        case 'auth/email-already-in-use':
+            return 'El correo ya está registrado en otra cuenta.';
+        case 'auth/wrong-password':
+        case 'auth/user-not-found':
+        case 'auth/invalid-credential':
+            return 'Correo o contraseña incorrectos.';
+        case 'auth/weak-password':
+            return 'La contraseña debe tener al menos 6 caracteres.';
+        default:
+            return 'Ocurrió un error al procesar la solicitud.';
     }
 }
-
-// Iniciar aplicación
-cargarTareas();
