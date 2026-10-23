@@ -20,6 +20,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 
+
 // Funciones para abrir y cerrar Modales
 function openModal(modal) {
     if (!modal) return;
